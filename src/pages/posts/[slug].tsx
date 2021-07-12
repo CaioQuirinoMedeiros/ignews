@@ -2,6 +2,8 @@ import { GetServerSideProps, GetStaticPaths, GetStaticProps } from 'next'
 import Head from 'next/head'
 import { RichText } from 'prismic-dom'
 import Prismic from '@prismicio/client'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faClock, faCalendar } from '@fortawesome/free-solid-svg-icons'
 
 import { getPrismicClient } from '../../services/prismic'
 
@@ -15,7 +17,9 @@ interface PostsProps {
     slug: string
     title: string
     content: string
+    publicatedAt: string
     updatedAt: string
+    readTime: string
   }
   prevPost: {
     slug: string
@@ -38,7 +42,19 @@ export default function Post(props: PostsProps) {
       <main className={styles.container}>
         <article className={styles.post}>
           <h1>{post.title}</h1>
-          <time>{post.updatedAt}</time>
+          <div className={styles.postInfos}>
+            <div>
+              <FontAwesomeIcon icon={faCalendar} />
+              <time>{post.updatedAt}</time>
+            </div>
+            <div>
+              <FontAwesomeIcon icon={faClock} />
+              <time>{post.readTime}</time>
+            </div>
+          </div>
+
+          {!!post.updatedAt && <time>{`* editado em ${post.updatedAt}`}</time>}
+
           <div
             className={styles.postContent}
             dangerouslySetInnerHTML={{ __html: post.content }}
@@ -133,16 +149,24 @@ export const getServerSideProps: GetServerSideProps = async ({
       postResponse.first_publication_date
     )
   ])
-  console.log({
-    response: postResponse,
-    lastPost: prevPostResponse,
-    nextPost: nextPostResponse
-  })
+
+  const postContentText = RichText.asText(postResponse.data.content)
+  const wordsPerMinute = 225
+  const numberOfWords = postContentText.split(/\s/g).length
+  const readTime = Math.ceil(numberOfWords / wordsPerMinute)
 
   const post = {
     slug: slug,
     title: RichText.asText(postResponse.data.title),
     content: RichText.asHtml(postResponse.data.content),
+    readTime: `${readTime} min`,
+    publicatedAt: new Date(
+      postResponse.first_publication_date
+    ).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    }),
     updatedAt: new Date(postResponse.last_publication_date).toLocaleDateString(
       'pt-BR',
       {

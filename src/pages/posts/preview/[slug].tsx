@@ -27,7 +27,6 @@ export default function PostPreview(props: PostsPreviewProps) {
 
   React.useEffect(() => {
     if (session?.activeSubscription) {
-      console.log('activeSubscription!!!!!!')
       router.push({ pathname: '/posts/[slug]', query: { slug: post.slug } })
     }
   }, [session])

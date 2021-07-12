@@ -1,12 +1,14 @@
 import { GetServerSideProps, GetStaticPaths, GetStaticProps } from 'next'
 import Head from 'next/head'
 import { RichText } from 'prismic-dom'
+import Prismic from '@prismicio/client'
 
 import { getPrismicClient } from '../../services/prismic'
 
 import { getSession } from 'next-auth/client'
 
 import styles from './post.module.scss'
+import { RouteLink } from '../../components/RouteLink'
 
 interface PostsProps {
   post: {
@@ -15,10 +17,18 @@ interface PostsProps {
     content: string
     updatedAt: string
   }
+  prevPost: {
+    slug: string
+    title: string
+  }
+  nextPost: {
+    slug: string
+    title: string
+  }
 }
 
 export default function Post(props: PostsProps) {
-  const { post } = props
+  const { post, prevPost, nextPost } = props
 
   return (
     <>
@@ -35,11 +45,47 @@ export default function Post(props: PostsProps) {
           />
         </article>
 
+        <section className={styles.postFooter}>
+          <div>
+            {!!prevPost && (
+              <RouteLink
+                href={{
+                  pathname: '/posts/[slug]',
+                  query: { slug: prevPost.slug }
+                }}
+              >
+                <a>
+                  <h6>{prevPost.title}</h6>
+                  <span>Previous post</span>
+                </a>
+              </RouteLink>
+            )}
+          </div>
+          {!!nextPost && (
+            <RouteLink
+              href={{
+                pathname: '/posts/[slug]',
+                query: { slug: nextPost.slug }
+              }}
+            >
+              <a className={styles.nextPost}>
+                <h6 className={styles.nextPost}>{nextPost.title}</h6>
+                <span className={styles.nextPost}>Next post</span>
+              </a>
+            </RouteLink>
+          )}
+        </section>
+
         <section
           ref={(elem) => {
             if (!elem) {
               return
             }
+
+            while (elem.firstChild) {
+              elem.removeChild(elem.lastChild)
+            }
+
             const scriptElem = document.createElement('script')
             scriptElem.src = 'https://utteranc.es/client.js'
             scriptElem.async = true
@@ -69,13 +115,35 @@ export const getServerSideProps: GetServerSideProps = async ({
 
   const prismic = getPrismicClient(req)
 
-  const response = await prismic.getByUID('post', String(slug), {})
+  const postResponse = await prismic.getByUID('post', String(slug), {})
+  const prevPostResponse = await prismic.queryFirst(
+    [
+      Prismic.Predicates.at('document.type', 'post'),
+      Prismic.Predicates.dateBefore(
+        'document.first_publication_date',
+        postResponse.first_publication_date
+      )
+    ],
+    { fetch: ['post.title'] }
+  )
+  const nextPostResponse = await prismic.queryFirst([
+    Prismic.Predicates.at('document.type', 'post'),
+    Prismic.Predicates.dateAfter(
+      'document.first_publication_date',
+      postResponse.first_publication_date
+    )
+  ])
+  console.log({
+    response: postResponse,
+    lastPost: prevPostResponse,
+    nextPost: nextPostResponse
+  })
 
   const post = {
     slug: slug,
-    title: RichText.asText(response.data.title),
-    content: RichText.asHtml(response.data.content),
-    updatedAt: new Date(response.last_publication_date).toLocaleDateString(
+    title: RichText.asText(postResponse.data.title),
+    content: RichText.asHtml(postResponse.data.content),
+    updatedAt: new Date(postResponse.last_publication_date).toLocaleDateString(
       'pt-BR',
       {
         day: '2-digit',
@@ -85,5 +153,21 @@ export const getServerSideProps: GetServerSideProps = async ({
     )
   }
 
-  return { props: { post } }
+  return {
+    props: {
+      post,
+      nextPost: nextPostResponse
+        ? {
+            slug: nextPostResponse.uid,
+            title: RichText.asText(nextPostResponse.data.title)
+          }
+        : null,
+      prevPost: prevPostResponse
+        ? {
+            slug: prevPostResponse.uid,
+            title: RichText.asText(prevPostResponse.data.title)
+          }
+        : null
+    }
+  }
 }

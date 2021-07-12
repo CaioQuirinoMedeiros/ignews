@@ -47,6 +47,36 @@
   }
 }
 
+.postFooter {
+  max-width: 720px;
+  margin: 2rem auto;
+  padding-top: 2rem;
+  border-top: 1px solid var(--gray-800);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  * {
+    flex: 1;
+    display: block;
+  }
+
+  .nextPost {
+    text-align: right;
+  }
+
+  h6 {
+    font-size: 1.2rem;
+    color: var(--white);
+    font-weight: normal;
+  }
+
+  span {
+    font-size: 1rem;
+    color: var(--pink-500);
+  }
+}
+
 .continueReading {
   padding: 2rem;
   text-align: center;

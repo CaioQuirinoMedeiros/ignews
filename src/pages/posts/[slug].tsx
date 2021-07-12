@@ -31,7 +31,10 @@ export default function Post(props: PostsProps) {
         <article className={styles.post}>
           <h1>{post.title}</h1>
           <time>{post.updatedAt}</time>
-          <div className={styles.postContent} dangerouslySetInnerHTML={{ __html: post.content }} />
+          <div
+            className={styles.postContent}
+            dangerouslySetInnerHTML={{ __html: post.content }}
+          />
         </article>
       </main>
     </>
@@ -42,11 +45,12 @@ export const getServerSideProps: GetServerSideProps = async ({
   req,
   params
 }) => {
-  // const prismic = getPrismicClient()
   const slug = params.slug
   const session = await getSession({ req })
 
-  // if (!session) {}
+  if (!session.activeSubscription) {
+    return { redirect: { destination: '/', permanent: false } }
+  }
 
   const prismic = getPrismicClient(req)
 
@@ -65,27 +69,6 @@ export const getServerSideProps: GetServerSideProps = async ({
       }
     )
   }
-
-  // const response = await prismic.query(
-  //   Prismic.predicates.at('document.type', 'post'),
-  //   { fetch: ['post.title', 'post.content'], pageSize: 100 }
-  // )
-
-  // const posts = response.results.map((post) => ({
-  //   slug: post.uid,
-  //   title: RichText.asText(post.data.title),
-  //   excerpt:
-  //     post.data.content.find((content) => content.type === 'paragraph')?.text ??
-  //     '',
-  //   updatedAt: new Date(post.last_publication_date).toLocaleDateString(
-  //     'pt-BR',
-  //     {
-  //       day: '2-digit',
-  //       month: 'long',
-  //       year: 'numeric'
-  //     }
-  //   )
-  // }))
 
   return { props: { post } }
 }

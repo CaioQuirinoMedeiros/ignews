@@ -5,19 +5,20 @@ import { api } from '../../services/api'
 
 import styles from './styles.module.scss'
 import { getStripeJs } from '../../services/stripe-js'
-interface SubscribeButtonProps {
-  priceId: string
-}
+import { useRouter } from 'next/router'
 
-export function SubscribeButton(props: SubscribeButtonProps) {
-  const { priceId } = props
-
+export function SubscribeButton() {
   const [session] = useSession()
+  const router = useRouter()
 
   const handleSubscribe = React.useCallback(async () => {
     try {
       if (!session) {
         return signIn('github')
+      }
+
+      if (session.activeSubscription) {
+        return router.push('/posts')
       }
 
       const response = await api.post('subscribe')
